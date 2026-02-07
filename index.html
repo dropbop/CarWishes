@@ -1,0 +1,514 @@
+<!--
+  THE LIST
+  ========
+  A dream car list. Built like it weighs something.
+
+  GITHUB PAGES SETUP (Claude Code instructions):
+  ===============================================
+  To split this into a proper repo for GitHub Pages:
+
+  1. Create a repo with this structure:
+     /
+     ├── index.html    (the <body> content + script, reference external CSS)
+     ├── style.css     (extract everything inside <style> tags)
+     ├── cars.js       (extract the CARS array and LIST_CREATED const)
+     └── README.md     (optional — "a man's list, kept in the dark")
+
+  2. In index.html:
+     - Replace <style>...</style> with <link rel="stylesheet" href="style.css">
+     - Replace the inline <script> with <script src="cars.js"></script>
+       followed by the rendering script, or put render logic in a separate app.js
+
+  3. Enable GitHub Pages in repo settings → Source: main branch, / (root)
+
+  4. That's it. No build step. No CI. Push and it's live.
+
+  To add a car:    Add a line to the CARS array.
+  To remove a car: Delete the line.
+  To mark owned:   Change status to "owned".
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The List</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  /* ============================================
+     CSS CUSTOM PROPERTIES — THE MATERIAL PALETTE
+     ============================================
+     Not "colors." Materials. What you'd see
+     in an unheated concrete room in Akureyri
+     at 3PM in January.
+  */
+  :root {
+    /* The void — deeper than black, the corners of the room */
+    --void: #050505;
+    --void-warm: #080806;
+
+    /* Concrete — the floor, the walls, barely visible */
+    --concrete: #0e0e0d;
+    --concrete-mid: #161614;
+    --concrete-light: #1a1a17;
+
+    /* Fluorescent — that dying tube overhead, sickly warm */
+    --fluorescent: #c4b68e;
+    --fluorescent-dim: #7a7260;
+    --fluorescent-dying: #504a3a;
+    --fluorescent-ghost: #2a2720;
+
+    /* Steel — cold, indifferent */
+    --steel: #555555;
+    --steel-dark: #222222;
+
+    /* Rust — the only organic thing here */
+    --rust: #7a3a15;
+    --rust-bright: #924a1d;
+
+    /* Chalk — residue, barely there */
+    --chalk: #b0a890;
+    --chalk-faded: #3a372e;
+  }
+
+  /* ============================================
+     RESET & BASE
+     ============================================ */
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background: var(--void);
+    color: var(--fluorescent);
+    font-family: 'Bebas Neue', 'Arial Black', Impact, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ============================================
+     THE DARKNESS
+     ============================================
+     Multiple layers of atmosphere. The page
+     should feel like a physical space, not a
+     screen. Darkness pressing in from all sides.
+  */
+
+  /* Layer 1: Concrete grain — the texture of the walls */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-size: 256px 256px;
+  }
+
+  /* Layer 2: The vignette — darkness eating the edges */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 50% 45% at 50% 40%,
+      transparent 0%,
+      rgba(5, 5, 5, 0.15) 40%,
+      rgba(5, 5, 5, 0.6) 65%,
+      rgba(5, 5, 5, 0.85) 80%,
+      rgba(5, 5, 5, 0.97) 100%
+    );
+  }
+
+  /* ============================================
+     THE LIGHT POOL
+     ============================================
+     A single fluorescent tube, almost dead,
+     casting a narrow pool on the floor below.
+     This is the only illumination.
+  */
+  .light-pool {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 100% 70% at 50% 30%,
+      rgba(196, 182, 142, 0.025) 0%,
+      rgba(196, 182, 142, 0.012) 30%,
+      transparent 70%
+    );
+    animation: light-breathe 12s ease-in-out infinite;
+  }
+
+  @keyframes light-breathe {
+    0%, 100% { opacity: 1; }
+    30% { opacity: 0.92; }
+    50% { opacity: 0.97; }
+    70% { opacity: 0.88; }
+    85% { opacity: 0.95; }
+  }
+
+  /* The overhead tube — a thin bright line at the top */
+  .tube {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    height: 2px;
+    background: var(--fluorescent-dying);
+    z-index: 5;
+    pointer-events: none;
+    box-shadow:
+      0 0 30px 5px rgba(196, 182, 142, 0.06),
+      0 0 80px 20px rgba(196, 182, 142, 0.02);
+    animation: tube-flicker 15s ease-in-out infinite;
+  }
+
+  @keyframes tube-flicker {
+    0%, 100% { opacity: 0.7; }
+    10% { opacity: 0.65; }
+    20% { opacity: 0.72; }
+    40% { opacity: 0.58; }
+    41% { opacity: 0.7; }
+    60% { opacity: 0.68; }
+    75% { opacity: 0.55; }
+    76% { opacity: 0.63; }
+    90% { opacity: 0.7; }
+  }
+
+  /* ============================================
+     CONTENT CONTAINER
+     ============================================ */
+  .container {
+    position: relative;
+    z-index: 3;
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 18vh 24px 30vh;
+    min-height: 100vh;
+  }
+
+  /* ============================================
+     THE TITLE
+     ============================================
+     Stamped steel. The words weigh something.
+  */
+  .title {
+    font-size: clamp(3.5rem, 10vw, 5.5rem);
+    font-weight: 400; /* Bebas Neue only has one weight */
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--fluorescent);
+    line-height: 0.9;
+    margin-bottom: 0.15em;
+    text-shadow:
+      0 1px 0 rgba(0, 0, 0, 0.8),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+    animation: title-settle 0.6s ease-out both;
+    opacity: 0.88;
+  }
+
+  @keyframes title-settle {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 0.88;
+      transform: translateY(0);
+    }
+  }
+
+  /* ============================================
+     THE DATE — serial number, stamped in the corner
+     ============================================ */
+  .datestamp {
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    font-size: 0.7rem;
+    color: var(--fluorescent-dying);
+    letter-spacing: 0.15em;
+    margin-bottom: 5rem;
+    opacity: 0.5;
+    text-transform: uppercase;
+  }
+
+  /* A thin line — like a scratch in concrete */
+  .divider {
+    width: 60px;
+    height: 1px;
+    background: var(--chalk-faded);
+    margin-bottom: 4rem;
+    opacity: 0.4;
+  }
+
+  /* ============================================
+     THE LIST
+     ============================================
+     Each entry is a line. Not a card. A line.
+     Like tallies on a wall. Like a manifest.
+  */
+  .list {
+    list-style: none;
+    padding: 0;
+  }
+
+  .entry {
+    font-size: clamp(1.1rem, 3vw, 1.45rem);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fluorescent-dim);
+    padding: 0.55em 0;
+    border-bottom: 1px solid rgba(42, 39, 32, 0.25);
+    position: relative;
+    transition: color 0.3s ease;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    animation: entry-appear 0.4s ease-out both;
+  }
+
+  .entry:last-child {
+    border-bottom: none;
+  }
+
+  /* Staggered fade-in — like eyes adjusting to darkness */
+  .entry:nth-child(1)  { animation-delay: 0.15s; }
+  .entry:nth-child(2)  { animation-delay: 0.22s; }
+  .entry:nth-child(3)  { animation-delay: 0.29s; }
+  .entry:nth-child(4)  { animation-delay: 0.36s; }
+  .entry:nth-child(5)  { animation-delay: 0.43s; }
+  .entry:nth-child(6)  { animation-delay: 0.50s; }
+  .entry:nth-child(7)  { animation-delay: 0.57s; }
+  .entry:nth-child(8)  { animation-delay: 0.64s; }
+  .entry:nth-child(9)  { animation-delay: 0.71s; }
+  .entry:nth-child(10) { animation-delay: 0.78s; }
+  .entry:nth-child(11) { animation-delay: 0.85s; }
+  .entry:nth-child(12) { animation-delay: 0.92s; }
+  .entry:nth-child(13) { animation-delay: 0.99s; }
+  .entry:nth-child(14) { animation-delay: 1.06s; }
+  .entry:nth-child(15) { animation-delay: 1.13s; }
+  .entry:nth-child(16) { animation-delay: 1.20s; }
+  .entry:nth-child(17) { animation-delay: 1.27s; }
+  .entry:nth-child(18) { animation-delay: 1.34s; }
+  .entry:nth-child(19) { animation-delay: 1.41s; }
+  .entry:nth-child(20) { animation-delay: 1.48s; }
+
+  @keyframes entry-appear {
+    from {
+      opacity: 0;
+      transform: translateX(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* ============================================
+     OWNED — THE BRAND
+     ============================================
+     Not a checkbox. Not a strikethrough.
+     A mark burned into iron.
+  */
+  .entry.owned {
+    color: var(--fluorescent);
+    opacity: 0.95;
+  }
+
+  .entry.owned::before {
+    content: '▮';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--rust);
+    font-size: 0.7em;
+    text-shadow: 0 0 8px rgba(146, 74, 29, 0.3);
+  }
+
+  /* ============================================
+     ENTRY NUMBER — faint, industrial
+     ============================================ */
+  .entry-num {
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    font-size: 0.55rem;
+    color: var(--fluorescent-ghost);
+    letter-spacing: 0.1em;
+    margin-right: 1.2em;
+    vertical-align: middle;
+    opacity: 0.4;
+    display: inline-block;
+    min-width: 2em;
+  }
+
+  /* ============================================
+     THE FLOOR — bottom of the room
+     ============================================
+     A gradient at the bottom that feels like
+     darkness swallowing the last entry.
+  */
+  .floor {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 30vh;
+    z-index: 4;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(5, 5, 5, 0.7) 50%,
+      var(--void) 100%
+    );
+  }
+
+  /* ============================================
+     RESPONSIVE — same energy, smaller room
+     ============================================ */
+  @media (max-width: 480px) {
+    .container {
+      padding: 15vh 20px 25vh;
+    }
+
+    .title {
+      letter-spacing: 0.15em;
+    }
+
+    .entry {
+      letter-spacing: 0.08em;
+      padding: 0.5em 0;
+    }
+
+    .entry-num {
+      margin-right: 0.8em;
+    }
+
+    .tube {
+      width: 120px;
+    }
+  }
+
+  /* ============================================
+     SCROLLBAR — almost invisible
+     ============================================ */
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--void);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--steel-dark);
+    border-radius: 0;
+  }
+
+  /* ============================================
+     SELECTION — chalk on concrete
+     ============================================ */
+  ::selection {
+    background: var(--chalk-faded);
+    color: var(--fluorescent);
+  }
+</style>
+</head>
+<body>
+
+<!-- The fluorescent tube and its light -->
+<div class="tube" aria-hidden="true"></div>
+<div class="light-pool" aria-hidden="true"></div>
+
+<!-- The content -->
+<main class="container" id="content">
+  <!-- Rendered by JavaScript -->
+</main>
+
+<!-- Darkness at the floor -->
+<div class="floor" aria-hidden="true"></div>
+
+<script>
+  // ============================================
+  // THE DATA
+  // ============================================
+  // This is the entire CMS.
+  // Add a car: add a line.
+  // Remove a car: delete the line.
+  // Mark owned: change status to "owned".
+  //
+  // For GitHub Pages split: extract this into cars.js
+  // and include via <script src="cars.js">
+
+  const LIST_CREATED = "2025-02-07";
+
+  const CARS = [
+    { name: "B5 Audi S4", status: "want" },
+    { name: "W140 S-Class", status: "want" },
+    { name: "Diablo SV", status: "want" },
+    { name: "Ferrari 348ts", status: "want" },
+    { name: "Pre-LP Gallardo", status: "want" },
+    { name: "E39 M5", status: "want" },
+    { name: "Early R8", status: "want" },
+    { name: "E60 M5", status: "want" },
+    { name: "AMG Hammer Wagon", status: "want" },
+    { name: "C6 Corvette", status: "want" },
+    { name: "996 or 997 911", status: "want" },
+    { name: "Toyota Century", status: "want" },
+    { name: "CT4-V or CT5-V Blackwing", status: "want" },
+    { name: "WS6 Trans Am", status: "want" },
+  ];
+
+  // ============================================
+  // RENDER
+  // ============================================
+  function render() {
+    const container = document.getElementById('content');
+    const pad = (n) => String(n).padStart(2, '0');
+
+    let html = '';
+    html += `<h1 class="title">The List</h1>`;
+    html += `<div class="datestamp">Est. ${LIST_CREATED} — ${CARS.length} entries</div>`;
+    html += `<div class="divider"></div>`;
+    html += `<ul class="list">`;
+
+    CARS.forEach((car, i) => {
+      const cls = car.status === 'owned' ? ' owned' : '';
+      html += `<li class="entry${cls}">`;
+      html += `<span class="entry-num">${pad(i + 1)}</span>`;
+      html += car.name;
+      html += `</li>`;
+    });
+
+    html += `</ul>`;
+    container.innerHTML = html;
+  }
+
+  render();
+</script>
+</body>
+</html>
